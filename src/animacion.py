@@ -38,10 +38,14 @@ import config as cfg
 import regiones
 
 # --- Parámetros visuales ----------------------------------------------------
-TAM_MIN, TAM_MAX = 35, 900      # área (pts^2) de la burbuja más chica / grande
+TAM_MIN, TAM_MAX = 35, 820      # área (pts^2) de la burbuja más chica / grande
 PAD_X, PAD_Y = 0.35, 0.45       # margen añadido a los límites de los ejes
 VENTANA_ESTELA = 6              # años recientes mostrados como "cola de cometa"
-ALPHA_BURBUJA = 0.68
+ALPHA_BURBUJA = 0.62
+# Años con pocos países: muestra parcial y sesgada -> se avisa en el cuadro.
+UMBRAL_COBERTURA_BAJA = 60
+# Valores de referencia (años de vida saludable) para la leyenda de tamaño.
+REF_TAMANO = [40, 60, 75]
 
 # Conjunto curado de países que se etiquetan SIEMPRE (si están presentes),
 # para poder seguir su evolución sin saturar el gráfico con ~140 etiquetas.
@@ -51,8 +55,17 @@ PAISES_ETIQUETADOS = [
     "Nigeria", "Ethiopia", "Afghanistan", "Costa Rica",
 ]
 
+# Desplazamiento de etiqueta por país (dx, dy en puntos) para separar pares
+# que suelen quedar cerca; el resto usa el valor por defecto (6, 6).
+OFFSET_ETIQUETA = {
+    "China": (6, -15), "Indonesia": (6, 13), "Mexico": (6, 8),
+    "Japan": (6, -13), "Germany": (6, 9), "Finland": (6, 8),
+    "United States": (8, -3),
+}
+
 # Cuadros estáticos que se exportan como PNG de referencia.
-ANIOS_FIGURA = [2006, 2010, 2015, 2020]
+# Se incluye 2005 porque ilustra la baja cobertura (aviso de muestra parcial).
+ANIOS_FIGURA = [2005, 2006, 2010, 2015, 2020]
 
 
 def cargar_limpio() -> pd.DataFrame:
@@ -115,7 +128,7 @@ class Animador:
     # --- construcción única de la figura ----------------------------------
     def crear_figura(self):
         self.fig, self.ax = plt.subplots(figsize=cfg.FIGSIZE)
-        self.fig.subplots_adjust(left=0.07, right=0.985, top=0.865, bottom=0.11)
+        self.fig.subplots_adjust(left=0.07, right=0.985, top=0.84, bottom=0.13)
         ax = self.ax
 
         # Marca de agua con el año (detrás de todo).
@@ -142,57 +155,89 @@ class Animador:
             c=[to_rgba(c, ALPHA_BURBUJA) for c in g0["__color"]],
             edgecolors="white", linewidths=0.6, zorder=3)
 
-        # Etiquetas (una anotación por país etiquetado).
+        # Etiquetas (una anotación por país etiquetado), con halo blanco.
         self.labels = {}
         for p in self.etiquetados:
             ann = ax.annotate(
-                p, (0, 0), xytext=(6, 6), textcoords="offset points",
+                p, (0, 0), xytext=OFFSET_ETIQUETA.get(p, (6, 6)),
+                textcoords="offset points",
                 fontsize=9, fontweight="bold", color="#111111", zorder=5,
-                path_effects=[pe.withStroke(linewidth=2.4, foreground="white")])
+                path_effects=[pe.withStroke(linewidth=2.6, foreground="white")])
             ann.set_visible(False)
             self.labels[p] = ann
 
-        # Conteo de países (abajo a la derecha).
+        # Conteo de países (abajo a la izquierda, zona vacía del gráfico).
         self.n_text = ax.text(
-            0.985, 0.03, "", transform=ax.transAxes, ha="right", va="bottom",
+            0.015, 0.03, "", transform=ax.transAxes, ha="left", va="bottom",
             fontsize=10, color="#555555",
             bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="#cccccc",
                       alpha=0.85), zorder=6)
 
+        # Aviso de cobertura baja (visible solo en años con pocos países).
+        self.warn_text = ax.text(
+            0.5, 0.965, "", transform=ax.transAxes, ha="center", va="top",
+            fontsize=10.5, fontweight="bold", color="#b00020", zorder=6,
+            bbox=dict(boxstyle="round,pad=0.4", fc="#fff4f4", ec="#b00020",
+                      alpha=0.92))
+        self.warn_text.set_visible(False)
+
         # Ejes, rejilla y límites (constantes).
         ax.set_xlim(*self.xlim)
         ax.set_ylim(*self.ylim)
-        ax.set_xlabel("Log del PIB per cápita  (ingreso →)", fontsize=12,
-                      labelpad=8)
+        ax.set_xlabel("Log del PIB per cápita  (log natural · ingreso →)",
+                      fontsize=12, labelpad=8)
         ax.set_ylabel("Life Ladder — escalera de la vida, 0–10  (bienestar →)",
                       fontsize=12, labelpad=8)
         ax.grid(True, ls="--", lw=0.5, alpha=0.4)
         ax.set_axisbelow(True)
         ax.tick_params(labelsize=10)
 
-        # Leyenda y títulos (estáticos).
-        handles = [
+        # Leyenda de color (regiones), arriba a la izquierda.
+        handles_color = [
             Line2D([0], [0], marker="o", color="w", label=r,
                    markerfacecolor=regiones.COLOR_REGION[r], markersize=11,
                    markeredgecolor="white")
             for r in regiones.REGIONES
         ]
-        ax.legend(handles=handles, loc="upper left", fontsize=9.5,
-                  title="Región (color)", title_fontsize=10,
-                  framealpha=0.9, borderpad=0.8)
+        leg_color = ax.legend(handles=handles_color, loc="upper left",
+                              fontsize=9.5, title="Región (color)",
+                              title_fontsize=10, framealpha=0.9, borderpad=0.8)
+        ax.add_artist(leg_color)  # conservar al añadir la segunda leyenda
+
+        # Leyenda de tamaño (esperanza de vida), abajo a la derecha (zona vacía).
+        # markersize = sqrt(área) para que coincida con la escala del scatter.
+        handles_tam = [
+            Line2D([0], [0], marker="o", color="w",
+                   label=f"{v} años",
+                   markerfacecolor="#9aa7b4", markeredgecolor="white",
+                   markersize=escala_tam(np.array([v]), self.tam_vmin,
+                                         self.tam_vmax)[0] ** 0.5)
+            for v in REF_TAMANO
+        ]
+        ax.legend(handles=handles_tam, loc="lower right",
+                  title="Tamaño = esperanza de vida\nsaludable (años) · no población",
+                  title_fontsize=8.5, fontsize=8.5, framealpha=0.9,
+                  labelspacing=1.7, handletextpad=1.3, borderpad=1.0)
+
+        # Títulos.
         self.fig.suptitle(
             "¿El ingreso de los países va acompañado de mayor bienestar?",
-            fontsize=17, fontweight="bold", y=0.978)
+            fontsize=16.5, fontweight="bold", y=0.985)
         self.fig.text(
-            0.5, 0.93,
-            "Cada burbuja es un país · tamaño ∝ esperanza de vida saludable "
-            "al nacer · un año por paso",
-            ha="center", fontsize=11, color="#444444")
+            0.5, 0.932,
+            "Cada burbuja es un país · tamaño = esperanza de vida saludable al "
+            "nacer (no población) · un año por paso",
+            ha="center", fontsize=10.5, color="#444444")
+        # Pie (2 líneas): encuadre transversal vs. intrapaís + fuente/advertencia.
         self.fig.text(
-            0.5, 0.012,
-            "Fuente: World Happiness Report (2005–2020)  ·  Región = agrupación "
-            "geográfica de apoyo visual, no es variable de la base  ·  Se "
-            "describen asociaciones, no relaciones causales.",
+            0.5, 0.032,
+            "Cada año compara países ENTRE sí (corte transversal); la cola de "
+            "cometa de los países rotulados muestra su evolución EN EL TIEMPO.",
+            ha="center", fontsize=8.5, color="#555555")
+        self.fig.text(
+            0.5, 0.009,
+            "Fuente: World Happiness Report (2005–2020)  ·  Región = apoyo visual, "
+            "no es variable de la base  ·  Se describen asociaciones, no causalidad.",
             ha="center", fontsize=8, color="#777777")
         return self.fig, self.ax
 
@@ -212,25 +257,38 @@ class Animador:
         self.year_text.set_text(str(anio))
         self.n_text.set_text(f"n = {len(g)} países con datos completos")
 
+        # Aviso de muestra parcial/sesgada en años de baja cobertura.
+        if len(g) < UMBRAL_COBERTURA_BAJA:
+            self.warn_text.set_text(
+                f"Muestra parcial ({len(g)} países, sesgada a ingreso alto): "
+                "no comparable con otros años")
+            self.warn_text.set_visible(True)
+        else:
+            self.warn_text.set_visible(False)
+
         # Estelas y etiquetas.
         presentes = g.set_index(cfg.COL_PAIS)
         for p in self.etiquetados:
+            presente = p in presentes.index
             tr = self.trayectorias[p]
             prev = tr[(tr[cfg.COL_ANIO] <= anio) &
                       (tr[cfg.COL_ANIO] >= anio - VENTANA_ESTELA)]
-            if len(prev) >= 2:
+            # La estela se dibuja SOLO si el país tiene burbuja este año, para
+            # no dejar "colas huérfanas" que apunten a la nada (p. ej. un país
+            # fuera del conteo "n =" del cuadro).
+            if presente and len(prev) >= 2:
                 self.trail_lines[p].set_data(prev[cfg.COL_X], prev[cfg.COL_Y])
             else:
                 self.trail_lines[p].set_data([], [])
 
-            if p in presentes.index:
+            if presente:
                 fila = presentes.loc[p]
                 self.labels[p].xy = (fila[cfg.COL_X], fila[cfg.COL_Y])
                 self.labels[p].set_visible(True)
             else:
                 self.labels[p].set_visible(False)
 
-        artistas = [self.scatter, self.year_text, self.n_text,
+        artistas = [self.scatter, self.year_text, self.n_text, self.warn_text,
                     *self.trail_lines.values(), *self.labels.values()]
         return artistas
 

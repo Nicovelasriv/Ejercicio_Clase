@@ -42,7 +42,7 @@ VARS_ANIMACION = [COL_X, COL_Y, COL_TAM]
 
 # --- Parámetros de la animación ---------------------------------------------
 FPS = 20                 # cuadros por segundo de reproducción
-SEGUNDOS_POR_ANIO = 1.5  # tiempo que cada año permanece en pantalla
+SEGUNDOS_POR_ANIO = 2.0  # tiempo que cada año permanece en pantalla
 PAUSA_INICIO_FIN = 1.2   # pausa extra (s) en el primer y último año
 DPI = 150                # resolución de render (150 dpi * figsize -> píxeles)
 FIGSIZE = (12.8, 7.2)    # 1920x1080 aprox. a 150 dpi

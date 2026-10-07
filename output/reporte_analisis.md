@@ -10,11 +10,11 @@
 ingreso y el bienestar muestran una asociación **positiva fuerte y estable**
 (los países más ricos tienden a reportar mayor bienestar). Sin embargo, *a lo
 largo del tiempo dentro de cada país* esa relación es **mucho más débil y
-heterogénea**: cuando un país se hace más rico, su bienestar sube solo de
-forma moderada en promedio, y en una fracción importante de casos no sube o
-incluso baja. La evolución del ingreso, por lo tanto, **solo en parte** va
-acompañada de cambios en el bienestar. *Todo lo que sigue describe
-asociaciones, no relaciones causales.*
+heterogénea**: en los países donde el ingreso aumentó, el bienestar tendió a
+aumentar solo de forma moderada en promedio, y en una fracción importante de
+casos no aumentó o incluso disminuyó. La evolución del ingreso, por lo tanto,
+**solo en parte** va acompañada de cambios en el bienestar. *Todo lo que sigue
+describe asociaciones, no relaciones causales.*
 
 ---
 
@@ -106,11 +106,11 @@ por año en `output/resumen_datos.csv`.
 
 ## 3. Visualización principal (animación)
 
-Archivo: **`output/video_final.mp4`** — 1920×1080, 20 fps, 26.4 s, 528 cuadros.
+Archivo: **`output/video_final.mp4`** — 1920×1080, 20 fps, 34.4 s, 688 cuadros.
 
 - **X** = `Log GDP per capita` · **Y** = `Life Ladder` · **tamaño** =
   `Healthy life expectancy at birth` · **color** = región · **tiempo** = `year`.
-- **Un año por paso.** Cada año real se sostiene ~1.5 s (varios cuadros
+- **Un año por paso.** Cada año real se sostiene ~2.0 s (varios cuadros
   idénticos para una lectura cómoda). **No se interpolan datos**: todos los
   cuadros de un año muestran exactamente los datos de ese año.
 - **Ejes constantes** durante toda la animación (y escala de tamaño constante),
@@ -122,8 +122,9 @@ Archivo: **`output/video_final.mp4`** — 1920×1080, 20 fps, 26.4 s, 528 cuadro
   Costa Rica) para poder **seguir su trayectoria**. Cada uno deja una breve
   "cola de cometa" con su recorrido de los últimos 6 años.
 
-Cuadros estáticos de referencia: `output/figures/frame_2006.png`,
-`frame_2010.png`, `frame_2015.png`, `frame_2020.png`.
+Cuadros estáticos de referencia: `output/figures/frame_2005.png`,
+`frame_2006.png`, `frame_2010.png`, `frame_2015.png`, `frame_2020.png`
+(el de 2005 muestra el aviso de muestra parcial por baja cobertura).
 
 ---
 
@@ -168,6 +169,10 @@ años):
 |---|---|---|
 | **Ingreso ↑** | 85 países | **46 países** |
 | **Ingreso ↓** | 7 países | 16 países |
+
+> Los cuatro cuadrantes suman 154; el país restante (de los 155) es Tailandia,
+> cuyo `Life Ladder` fue idéntico en su primer y último año observado (Δ = 0),
+> por lo que no cae en ningún cuadrante estricto.
 
 ![Cambios de largo plazo](figures/cambios_largo_plazo.png)
 

@@ -58,7 +58,7 @@ Ejercicio_Clase/
 │   ├── datos_limpios_animacion.csv        # dataset limpio usado para graficar
 │   ├── reporte_analisis.md                # reporte completo del análisis
 │   └── figures/                           # cuadros estáticos + gráficos de apoyo
-│       ├── frame_2006.png … frame_2020.png
+│       ├── frame_2005.png … frame_2020.png
 │       ├── correlacion_por_anio.png
 │       └── cambios_largo_plazo.png
 ├── requirements.txt
@@ -131,7 +131,7 @@ python3 src/animacion.py          # video_final.mp4 + cuadros de referencia
 python3 src/verificar_video.py    # verifica el MP4
 ```
 
-El render de la animación toma ~2–3 min (528 cuadros a 20 fps, 1920×1080).
+El render de la animación toma ~3–4 min (688 cuadros a 20 fps, 1920×1080).
 
 ---
 
