@@ -1,0 +1,8 @@
+# Dependencias de Python del proyecto.
+# Instalar con:  pip install -r requirements.txt
+#
+# Probado con Python 3.13. ffmpeg es una dependencia del SISTEMA (no de pip)
+# y debe estar instalado y disponible en el PATH para generar el MP4.
+pandas>=2.0
+numpy>=1.24
+matplotlib>=3.7
